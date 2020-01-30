@@ -1,2 +1,5 @@
 # OpenRansomware
-Windows ransomware proof of concept
+Simple Windows Ransomware POC.
+> FOR LEARNING PURPOSES ONLY!
+
+## Still under development
