@@ -1,5 +1,5 @@
 # OpenRansomware
-Simple Windows Ransomware POC.
+Open Source Windows Ransomware POC.
 > FOR LEARNING PURPOSES ONLY!
 
 ## Still under development
