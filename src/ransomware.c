@@ -2,10 +2,6 @@
 
 //#define RM_SHADOW_BACKUPS "/c vssadmin.exe Delete Shadows /All /Quiet & bcdedit /set {default} recoveryenabled No & bcdedit /set {default} bootstatuspolicy ignoreallfailures"
 #define RM_SHADOW_BACKUPS	"/c pause"
-#define RSA_PUBKEY_SIZE		283
-
-/* https://github.com/wine-mirror/wine/blob/master/include/wincrypt.h */
-#define CRYPT_STRING_BINARY	0x00000002
 
 #define SIZEOF_ARRAY(arr)	(sizeof(arr) / sizeof(arr[0]))
 
