@@ -67,6 +67,9 @@ main(int argc, char **argv)
 	fclose(f);
 	/* BCryptCloseAlgorithmProvider */
 	adrof(hinst, "BCryptCloseAlgorithmProvider")(alghandle, 0);
+	/* BCryptDestroyKey */
+	if (adrof(hinst, "BCryptDestroyKey")(hkey))
+		die("Failed to BCryptDestroyKey");
 
 	FreeLibrary(hinst);
 }
