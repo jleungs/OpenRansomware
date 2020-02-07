@@ -38,7 +38,6 @@ main(int argc, char **argv)
 	}
 
 	HINSTANCE hinst;
-	FARPROC func;
 	BCRYPT_ALG_HANDLE alghandle = 0;
 	BCRYPT_KEY_HANDLE hkey = 0;
 	HANDLE rs;

@@ -59,18 +59,10 @@ main(int argc, char **argv)
 	 * [] Remove AES key
 	 * [] Save encrypted AES key
 	*/
-	HANDLE f;
 	HINSTANCE hinst;
-	FARPROC func_addr;
 	BCRYPT_KEY_HANDLE skey, ckey;
 	BCRYPT_ALG_HANDLE alghandle;
 
-	char *lib, *func;
-	unsigned int pubkey_size;
-	/*
-	if ((rsa_pubkey = rsa_read_pubkey("TEST.txt")) < 0)
-		die("Failed to retrieve AES Public Key");
-	*/
 	if (!(hinst = LoadLibrary("bcrypt.dll")))
 		die("Failed to load bcrypt.dll");
 
@@ -83,10 +75,10 @@ main(int argc, char **argv)
 	if (adrof(hinst,"BCryptOpenAlgorithmProvider")(&alghandle, BCRYPT_RSA_ALGORITHM, 0, 0))
 			die("Failed call to BCryptOpenAlgorithmProvider");
 	/* BCryptGenerateKeyPair */
-	if (adrof(hinst, "BCryptGenerateKeyPair")(alghandle, &skey, 2048, 0))
+	if (adrof(hinst, "BCryptGenerateKeyPair")(alghandle, &ckey, 2048, 0))
 			die("Failed call to BCryptGenerateKeyPair");
 	/* BCryptFinalizeKeyPair */
-	if (adrof(hinst, "BCryptFinalizeKeyPair")(skey, 0))
+	if (adrof(hinst, "BCryptFinalizeKeyPair")(ckey, 0))
 			die("Failed call to BCryptFinalizeKeyPair");
 
 
