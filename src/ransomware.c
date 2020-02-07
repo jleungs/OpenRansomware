@@ -85,6 +85,7 @@ main(int argc, char **argv)
 	/* BCryptDestroyKey */
 	adrof(hinst, "BCryptDestroyKey")(skey);
 	adrof(hinst, "BCryptDestroyKey")(ckey);
+	FreeLibrary(hinst);
 	return 0;
 }
 
