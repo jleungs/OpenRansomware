@@ -13,7 +13,7 @@ ktof(HINSTANCE *hinst, BCRYPT_KEY_HANDLE *hkey, short unsigned int *blobtype, co
 		die("Failed to call BCryptExportKey");
 	
 	if (!(keyblob = malloc(keysize)))
-		die("Failed to malloc privkey");
+		die("Failed to malloc keyblob");
 	/* BCryptExportKey */
 	if (adrof(*hinst, "BCryptExportKey")(*hkey, 0, blobtype, keyblob, keysize, &keysize, 0))
 		die("Failed to call BCryptExportKey");
