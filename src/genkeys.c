@@ -1,32 +1,32 @@
+#include <windows.h>
+
 #include "util.h"
+#include "crypt.h"
 
 /* key to file */
-unsigned long
-ktof(HINSTANCE *hinst, BCRYPT_KEY_HANDLE *hkey, short unsigned int *blobtype, const char *filename, const char *fmode)
+void
+ktof(HINSTANCE *hinst, Keypair *k, short unsigned int *blobtype, const char *filename, const char *fmode)
 {
 	FILE *f;
-	unsigned long keysize = 0;
-	unsigned char *keyblob;
 
 	/* BCryptExportKey */
-	if (adrof(*hinst, "BCryptExportKey")(*hkey, 0, blobtype, 0, 0, &keysize, 0))
+	if (adrof(*hinst, "BCryptExportKey")(k->khandle, 0, blobtype, 0, 0, &(k->size), 0))
 		die("Failed to call BCryptExportKey");
 	
-	if (!(keyblob = malloc(keysize)))
+	if (!(k->blob = malloc(k->size)))
 		die("Failed to malloc keyblob");
 	/* BCryptExportKey */
-	if (adrof(*hinst, "BCryptExportKey")(*hkey, 0, blobtype, keyblob, keysize, &keysize, 0))
+	if (adrof(*hinst, "BCryptExportKey")(k->khandle, 0, blobtype, k->blob, k->size, &(k->size), 0))
 		die("Failed to call BCryptExportKey");
 	/* Write to file */
 	if (!(f = fopen(filename, fmode)))
 		die("Failed to fopen");
-	if (!fwrite(keyblob, 1, keysize, f))
+	if (!fwrite(k->blob, 1, k->size, f))
 		die("Failed to fwrite");
 	fclose(f);
-	free(keyblob);
+	free(k->blob);
 
-	printf("Wrote %lu bytes to %s\n", keysize, filename);
-	return keysize;
+	printf("Wrote %lu bytes to %s\n", k->size, filename);
 }
 
 int
@@ -38,36 +38,28 @@ main(int argc, char **argv)
 	}
 
 	HINSTANCE hinst;
-	BCRYPT_ALG_HANDLE alghandle = 0;
-	BCRYPT_KEY_HANDLE hkey = 0;
 	HANDLE rs;
 	FILE *f;
-	unsigned long pubkeysize;
+	Keypair *k;
 
 	if (!(hinst = LoadLibrary("bcrypt.dll")))
 		die("Failed to load bcrypt.dll");
-	/* BCryptOpenAlgorithmProvider */
-	if (adrof(hinst,"BCryptOpenAlgorithmProvider")(&alghandle, BCRYPT_RSA_ALGORITHM, 0, 0))
-		die("Failed call to BCryptOpenAlgorithmProvider");
-	/* BCryptGenerateKeyPair */
-	if (adrof(hinst, "BCryptGenerateKeyPair")(alghandle, &hkey, 2048, 0))
-		die("Failed call to BCryptGenerateKeyPair");
-	/* BCryptFinalizeKeyPair */
-	if (adrof(hinst, "BCryptFinalizeKeyPair")(hkey, 0))
-		die("Failed call to BCryptFinalizeKeyPair");
+	/* malloc struct */
+	if (!(k = malloc(sizeof(Keypair))))
+		die("Failed to malloc Keypair struct");
+	rsa_gen_key(&hinst, k);
 	/* Write private key to file */
-	ktof(&hinst, &hkey, BCRYPT_RSAPRIVATE_BLOB, "private.key", "wb");
-	pubkeysize = ktof(&hinst, &hkey, BCRYPT_RSAPUBLIC_BLOB, argv[1], "ab");
+	ktof(&hinst, k, BCRYPT_RSAPRIVATE_BLOB, "private.key", "wb");
+	ktof(&hinst, k, BCRYPT_RSAPUBLIC_BLOB, argv[1], "ab");
 	/* Write keysize to file */
 	if (!(f = fopen(argv[1], "ab")))
 		die("Failed to fopen");
-	if (!fwrite(&pubkeysize, 1, sizeof(unsigned), f))
+	if (!fwrite(&(k->size), 1, sizeof(unsigned), f))
 		die("Failed to fwrite");
 	fclose(f);
-	/* BCryptCloseAlgorithmProvider */
-	adrof(hinst, "BCryptCloseAlgorithmProvider")(alghandle, 0);
+
 	/* BCryptDestroyKey */
-	if (adrof(hinst, "BCryptDestroyKey")(hkey))
+	if (adrof(hinst, "BCryptDestroyKey")(k->khandle))
 		die("Failed to BCryptDestroyKey");
 
 	FreeLibrary(hinst);

