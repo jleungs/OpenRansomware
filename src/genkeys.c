@@ -9,15 +9,7 @@ ktof(HINSTANCE *hinst, Keypair *k, short unsigned int *blobtype, const char *fil
 {
 	FILE *f;
 
-	/* BCryptExportKey */
-	if (adrof(*hinst, "BCryptExportKey")(k->khandle, 0, blobtype, 0, 0, &(k->size), 0))
-		die("Failed to call BCryptExportKey");
-	
-	if (!(k->blob = malloc(k->size)))
-		die("Failed to malloc keyblob");
-	/* BCryptExportKey */
-	if (adrof(*hinst, "BCryptExportKey")(k->khandle, 0, blobtype, k->blob, k->size, &(k->size), 0))
-		die("Failed to call BCryptExportKey");
+	ktob(hinst, k, blobtype);
 	/* Write to file */
 	if (!(f = fopen(filename, fmode)))
 		die("Failed to fopen");
