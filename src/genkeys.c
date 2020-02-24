@@ -53,7 +53,8 @@ main(int argc, char **argv)
 	/* BCryptDestroyKey */
 	if (adrof(hinst, "BCryptDestroyKey")(k->khandle))
 		die("Failed to BCryptDestroyKey");
-
+	/* cleanup */
 	FreeLibrary(hinst);
+	free(k->blob);
 }
 
